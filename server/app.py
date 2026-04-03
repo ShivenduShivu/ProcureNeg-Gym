@@ -69,8 +69,6 @@ def schema() -> dict:
                 "propose",
                 "counter",
                 "accept",
-                "accept_package",
-                "probe",
                 "anchor",
                 "concede",
                 "package_trade",

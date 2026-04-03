@@ -8,8 +8,6 @@ class ActionType(str, Enum):
     PROPOSE = "propose"
     COUNTER = "counter"
     ACCEPT = "accept"
-    ACCEPT_PACKAGE = "accept_package"
-    PROBE = "probe"
     ANCHOR = "anchor"
     CONCEDE = "concede"
     PACKAGE_TRADE = "package_trade"
