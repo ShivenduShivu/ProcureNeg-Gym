@@ -12,7 +12,7 @@ from server.models import Action, Observation, StepResult
 
 app = FastAPI(title="ProcureNeg-Gym OpenEnv API")
 
-env = ProcureNegEnv()
+env: ProcureNegEnv | None = None
 
 
 class ResetRequest(BaseModel):
@@ -25,13 +25,26 @@ def root() -> RedirectResponse:
 
 
 @app.post("/reset", response_model=Observation)
-def reset(request: ResetRequest | None = None) -> Observation:
-    task_name = "medium" if request is None else request.task_name
-    return env.reset(task_name)
+def reset(request: ResetRequest) -> Observation:
+    global env
+    env = ProcureNegEnv()
+    return env.reset(request.task_name)
 
 
 @app.post("/step", response_model=StepResult)
 def step(action: Action) -> StepResult:
+    if env is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Environment not initialized. Call /reset first.",
+        )
+
+    if env.done:
+        raise HTTPException(
+            status_code=400,
+            detail="Episode finished. Call /reset.",
+        )
+
     try:
         return env.step(action)
     except Exception as exc:
@@ -40,6 +53,12 @@ def step(action: Action) -> StepResult:
 
 @app.get("/state")
 def state() -> dict[str, int | bool]:
+    if env is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Environment not initialized.",
+        )
+
     return env.state()
 
 
