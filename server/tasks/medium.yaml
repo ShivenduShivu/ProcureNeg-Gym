@@ -1,0 +1,16 @@
+name: medium_negotiation
+difficulty: medium
+max_steps: 10
+
+counterparty:
+  reservation:
+    annual_fee: 800000
+    payment_terms: 30
+    duration_years: 3
+    sla_uptime: 99.5
+    sla_penalty_rate: 0.05
+    liability_cap: 1.0
+    ip_ownership: vendor
+    termination_days: 60
+
+  flexibility: 0.15

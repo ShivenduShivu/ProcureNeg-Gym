@@ -1,0 +1,16 @@
+name: hard_negotiation
+difficulty: hard
+max_steps: 8
+
+counterparty:
+  reservation:
+    annual_fee: 1200000
+    payment_terms: 20
+    duration_years: 4
+    sla_uptime: 99.7
+    sla_penalty_rate: 0.03
+    liability_cap: 0.8
+    ip_ownership: vendor
+    termination_days: 90
+
+  flexibility: 0.08

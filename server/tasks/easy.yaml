@@ -1,0 +1,16 @@
+name: easy_negotiation
+difficulty: easy
+max_steps: 12
+
+counterparty:
+  reservation:
+    annual_fee: 600000
+    payment_terms: 45
+    duration_years: 2
+    sla_uptime: 99.3
+    sla_penalty_rate: 0.08
+    liability_cap: 1.2
+    ip_ownership: vendor
+    termination_days: 45
+
+  flexibility: 0.25
