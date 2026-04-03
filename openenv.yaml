@@ -1,7 +1,7 @@
 name: procureneg-gym
 version: 1.0
 
-entrypoint: server.app:app
+entrypoint: server.app:main
 
 endpoints:
   reset:

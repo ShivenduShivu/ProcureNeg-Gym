@@ -84,6 +84,22 @@ The environment also adds light intermediate shaping during negotiation:
 
 This keeps the system deterministic while making step-by-step behavior less sparse.
 
+The declared reward range for the API is `[-0.1, 1.0]`:
+
+- terminal rewards come from the deterministic grader
+- intermediate shaping can be slightly negative for strategically weak actions
+
+## Determinism
+
+The environment is designed to be fully deterministic:
+
+- task configuration comes from static YAML files
+- the counterparty uses fixed rules, not randomness
+- the grader is a pure scoring function
+- the fallback inference policy follows a fixed action sequence
+
+Given the same task and the same action sequence, the environment produces the same trajectory and score.
+
 ## Counterparty Behavior
 
 The counterparty is rule-based and deterministic.
@@ -91,9 +107,27 @@ The counterparty is rule-based and deterministic.
 It evaluates each incoming offer against hidden reservation values and generates structured counteroffers. It also adjusts its concession flexibility based on:
 
 - `anchor` actions
+- `concede` actions
 - repeated offers
+- `counter` actions
 
 There is no randomness in counterparty behavior.
+
+## Environment Design Note
+
+The API is intentionally single-session for hackathon evaluation:
+
+- one active environment is created on each `POST /reset`
+- `POST /step` operates on that active episode
+- hidden seller state is kept server-side
+
+This keeps the evaluation lifecycle simple and predictable for external validation.
+
+## Reproducibility
+
+The included `inference.py` runner is API-driven and includes a deterministic fallback policy.
+
+This means the system can still produce repeatable demonstrations even when no model API key is configured.
 
 ## What Makes This Challenging
 

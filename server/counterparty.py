@@ -60,14 +60,14 @@ class Counterparty:
             self.current_offer.annual_fee + fee_adjustment,
         )
 
+        payment_weight = self.preferences.get("payment_terms", 0.8)
+        payment_gap = offer.payment_terms - self.current_offer.payment_terms
+        payment_adjustment = payment_gap * self.flexibility * payment_weight * 0.4
         counter.payment_terms = max(
             15,
             min(
                 self.reservation.payment_terms,
-                int(
-                    counter.payment_terms
-                    + self.flexibility * (offer.payment_terms - counter.payment_terms)
-                ),
+                int(round(self.current_offer.payment_terms + payment_adjustment)),
             ),
         )
 

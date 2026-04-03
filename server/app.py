@@ -1,4 +1,5 @@
 import os
+from threading import Lock
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
@@ -13,6 +14,7 @@ from server.models import Action, Observation, StepResult
 app = FastAPI(title="ProcureNeg-Gym OpenEnv API")
 
 env: ProcureNegEnv | None = None
+env_lock = Lock()
 
 
 class ResetRequest(BaseModel):
@@ -27,39 +29,42 @@ def root() -> RedirectResponse:
 @app.post("/reset", response_model=Observation)
 def reset(request: ResetRequest) -> Observation:
     global env
-    env = ProcureNegEnv()
-    return env.reset(request.task_name)
+    with env_lock:
+        env = ProcureNegEnv()
+        return env.reset(request.task_name)
 
 
 @app.post("/step", response_model=StepResult)
 def step(action: Action) -> StepResult:
-    if env is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Environment not initialized. Call /reset first.",
-        )
+    with env_lock:
+        if env is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Environment not initialized. Call /reset first.",
+            )
 
-    if env.done:
-        raise HTTPException(
-            status_code=400,
-            detail="Episode finished. Call /reset.",
-        )
+        if env.done:
+            raise HTTPException(
+                status_code=400,
+                detail="Episode finished. Call /reset.",
+            )
 
-    try:
-        return env.step(action)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        try:
+            return env.step(action)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/state")
 def state() -> dict[str, int | bool]:
-    if env is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Environment not initialized.",
-        )
+    with env_lock:
+        if env is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Environment not initialized.",
+            )
 
-    return env.state()
+        return env.state()
 
 
 @app.get("/health")
@@ -113,7 +118,7 @@ def schema() -> dict:
         },
         "reward": {
             "type": "deterministic",
-            "range": [0.0, 1.0],
+            "range": [-0.1, 1.0],
         },
     }
 

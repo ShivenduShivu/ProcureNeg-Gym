@@ -17,7 +17,12 @@ from server.models import (
 class ProcureNegEnv:
     def __init__(self, max_steps: int = 10):
         self.max_steps = max_steps
-        self.reset()
+        self.step_count = 0
+        self.done = False
+        self.history: list[Action] = []
+        self.current_offer: Optional[ContractClauses] = None
+        self.counterparty_offer: Optional[ContractClauses] = None
+        self.counterparty: Optional[Counterparty] = None
 
     def reset(self, task_name: str = "medium") -> Observation:
         task = load_task(task_name)
@@ -36,6 +41,9 @@ class ProcureNegEnv:
         return self._get_observation()
 
     def step(self, action: Action) -> StepResult:
+        if self.counterparty is None:
+            raise RuntimeError("Environment not initialized. Call reset first")
+
         if self.done:
             raise RuntimeError("Episode already completed")
 
@@ -59,6 +67,9 @@ class ProcureNegEnv:
 
             if action.action_type == ActionType.CONCEDE and self.counterparty is not None:
                 self.counterparty.flexibility = min(1.0, self.counterparty.flexibility * 1.15)
+
+            if action.action_type == ActionType.COUNTER and self.counterparty is not None:
+                self.counterparty.flexibility = min(1.0, self.counterparty.flexibility * 1.05)
 
             if action.action_type == ActionType.ANCHOR:
                 reward -= 0.01
@@ -108,6 +119,8 @@ class ProcureNegEnv:
 
         if self.step_count >= self.max_steps:
             self.done = True
+
+        reward = max(-0.1, min(1.0, reward))
 
         return StepResult(
             observation=self._get_observation(),

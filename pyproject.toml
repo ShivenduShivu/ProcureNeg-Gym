@@ -13,11 +13,13 @@ dependencies = [
   "uvicorn",
   "pydantic",
   "pyyaml",
+  "requests",
+  "openai",
   "openenv-core>=0.2.0",
 ]
 
 [project.scripts]
-server = "server.app:app"
+server = "server.app:main"
 
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider"

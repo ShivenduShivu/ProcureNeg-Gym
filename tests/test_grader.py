@@ -1,5 +1,6 @@
 from server.grader import compute_score
-from server.models import ContractClauses
+from server.environment import ProcureNegEnv
+from server.models import Action, ActionType, ContractClauses
 
 
 def test_grader_runs() -> None:
@@ -18,3 +19,42 @@ def test_grader_runs() -> None:
 
     assert "final_score" in result
     assert result["final_score"] >= 0
+
+
+def test_reward_stays_within_declared_range() -> None:
+    env = ProcureNegEnv()
+    env.reset("medium")
+
+    first = env.step(
+        Action(
+            action_type=ActionType.ANCHOR,
+            offer=ContractClauses(
+                annual_fee=700000,
+                payment_terms=45,
+                duration_years=3,
+                sla_uptime=99.5,
+                sla_penalty_rate=0.05,
+                liability_cap=1.0,
+                ip_ownership="joint",
+                termination_days=60,
+            ),
+        )
+    )
+    second = env.step(
+        Action(
+            action_type=ActionType.ANCHOR,
+            offer=ContractClauses(
+                annual_fee=720000,
+                payment_terms=40,
+                duration_years=3,
+                sla_uptime=99.4,
+                sla_penalty_rate=0.05,
+                liability_cap=1.0,
+                ip_ownership="joint",
+                termination_days=60,
+            ),
+        )
+    )
+
+    assert -0.1 <= first.reward <= 1.0
+    assert -0.1 <= second.reward <= 1.0
