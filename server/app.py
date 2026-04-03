@@ -48,12 +48,14 @@ def health() -> dict[str, str]:
 
 
 @app.get("/metadata")
-def metadata() -> dict[str, str]:
+def metadata() -> dict[str, str | bool]:
     return {
         "name": "procureneg-gym",
         "version": "1.0",
         "description": "Deterministic procurement negotiation RL environment",
         "author": "your-team-name",
+        "task_type": "negotiation",
+        "deterministic": True,
     }
 
 
