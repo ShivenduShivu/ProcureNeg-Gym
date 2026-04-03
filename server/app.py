@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
@@ -15,7 +16,7 @@ env = ProcureNegEnv()
 
 
 class ResetRequest(BaseModel):
-    task_name: str = "medium"
+    task_name: Literal["easy", "medium", "hard"] = "medium"
 
 
 @app.get("/", include_in_schema=False)
