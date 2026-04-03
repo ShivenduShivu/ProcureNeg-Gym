@@ -8,7 +8,7 @@ app_port: 7860
 base_path: /docs
 fullWidth: true
 pinned: false
-short_description: Deterministic procurement negotiation environment with OpenEnv-compatible API endpoints.
+short_description: OpenEnv-compatible procurement negotiation API.
 ---
 
 # ProcureNeg-Gym
