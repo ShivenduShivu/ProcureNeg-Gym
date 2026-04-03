@@ -52,9 +52,12 @@ class Counterparty:
         """
         counter = deepcopy(self.current_offer)
 
+        price_weight = self.preferences.get("annual_fee", 1.0)
+        fee_gap = offer.annual_fee - self.current_offer.annual_fee
+        fee_adjustment = fee_gap * self.flexibility * price_weight * 0.5
         counter.annual_fee = max(
             self.reservation.annual_fee,
-            counter.annual_fee - self.flexibility * (counter.annual_fee - offer.annual_fee),
+            self.current_offer.annual_fee + fee_adjustment,
         )
 
         counter.payment_terms = max(
@@ -76,12 +79,14 @@ class Counterparty:
             ),
         )
 
+        sla_weight = self.preferences.get("sla_uptime", 0.5)
+        sla_gap = offer.sla_uptime - self.current_offer.sla_uptime
+        sla_adjustment = sla_gap * self.flexibility * sla_weight * 0.3
         counter.sla_uptime = max(
             99.0,
             min(
                 self.reservation.sla_uptime,
-                counter.sla_uptime
-                + self.flexibility * (offer.sla_uptime - counter.sla_uptime),
+                self.current_offer.sla_uptime + sla_adjustment,
             ),
         )
 
