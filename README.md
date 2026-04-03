@@ -95,6 +95,24 @@ It evaluates each incoming offer against hidden reservation values and generates
 
 There is no randomness in counterparty behavior.
 
+## What Makes This Challenging
+
+The negotiation problem is intentionally structured to create non-trivial decision pressure:
+
+- hidden reservation values mean the agent must infer seller limits indirectly
+- multiple contract clauses create real tradeoffs instead of a single optimization target
+- buyer-friendly improvements can conflict with deal completion
+- action sequencing matters because anchors, concessions, and package trades affect negotiation dynamics
+
+## What Makes This Different
+
+This environment is built for evaluation, not free-form roleplay:
+
+- fully deterministic grading
+- structured action space instead of open-ended chat
+- real contract clauses with bounded values
+- reproducible benchmark behavior across tasks
+
 ## Why This Matters
 
 This project is designed to be useful beyond a toy simulation:

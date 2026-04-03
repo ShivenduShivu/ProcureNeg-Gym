@@ -24,12 +24,19 @@ llm_client = OpenAI(
 
 def build_prompt(observation: dict[str, Any]) -> str:
     return (
-        "You are a procurement negotiation agent.\n"
+        "You are negotiating a procurement contract.\n"
         "Choose the next best structured action for the buyer.\n"
-        "Return JSON only.\n\n"
+        "You must use strategic actions:\n"
+        '- Use "anchor" at the beginning to set a strong position\n'
+        '- Use "concede" when negotiation stalls\n'
+        '- Use "package_trade" when improving multiple terms together\n'
+        "Do not always use the same action.\n"
+        "Balance between aggressive and cooperative strategies.\n"
+        "Return ONLY valid JSON.\n\n"
         f"Observation:\n{json.dumps(observation, indent=2, sort_keys=True)}\n\n"
-        "Allowed actions: propose, counter, accept, walkaway.\n"
-        "If you return propose or counter, include a full offer object with these fields:\n"
+        "Allowed actions: propose, counter, accept, anchor, concede, package_trade, walkaway.\n"
+        "If you return propose, counter, anchor, concede, or package_trade, "
+        "include a full offer object with these fields:\n"
         "annual_fee, payment_terms, duration_years, sla_uptime, sla_penalty_rate, "
         "liability_cap, ip_ownership, termination_days.\n"
         'Valid ip_ownership values: "vendor", "joint", "client".\n'
@@ -89,8 +96,17 @@ def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
     elif step >= 2:
         ip_ownership = "joint"
 
+    if step == 0:
+        action_type = "anchor"
+    elif step == 2:
+        action_type = "package_trade"
+    elif step >= 4:
+        action_type = "concede"
+    else:
+        action_type = "propose"
+
     return {
-        "action": "propose",
+        "action": action_type,
         "offer": {
             "annual_fee": min(2000000, 400000 + step * 120000),
             "payment_terms": max(15, 60 - step * 6),
@@ -106,12 +122,20 @@ def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
 
 def normalize_action(action: dict[str, Any], step: int, observation: dict[str, Any]) -> dict[str, Any]:
     chosen_action = str(action.get("action", "")).strip().lower()
-    allowed_actions = {"propose", "counter", "accept", "walkaway"}
+    allowed_actions = {
+        "propose",
+        "counter",
+        "accept",
+        "anchor",
+        "concede",
+        "package_trade",
+        "walkaway",
+    }
     if chosen_action not in allowed_actions:
         return fallback_policy(step, observation)
 
     normalized: dict[str, Any] = {"action": chosen_action}
-    if chosen_action in {"propose", "counter"}:
+    if chosen_action in {"propose", "counter", "anchor", "concede", "package_trade"}:
         offer = action.get("offer")
         if not isinstance(offer, dict):
             return fallback_policy(step, observation)
