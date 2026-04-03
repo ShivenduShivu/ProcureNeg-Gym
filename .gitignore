@@ -27,6 +27,7 @@ htmlcov/
 .ruff_cache/
 .tox/
 .nox/
+.uv-cache/
 
 # Local environment files
 .env

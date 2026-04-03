@@ -1,7 +1,7 @@
 name: procureneg-gym
 version: 1.0
 
-entrypoint: server.main:app
+entrypoint: server.app:app
 
 endpoints:
   reset:
@@ -15,3 +15,19 @@ endpoints:
   state:
     method: GET
     path: /state
+
+  health:
+    method: GET
+    path: /health
+
+  metadata:
+    method: GET
+    path: /metadata
+
+  schema:
+    method: GET
+    path: /schema
+
+  mcp:
+    method: POST
+    path: /mcp
