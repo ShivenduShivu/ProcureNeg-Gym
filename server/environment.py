@@ -39,6 +39,7 @@ class ProcureNegEnv:
         if self.done:
             raise RuntimeError("Episode already completed")
 
+        previous_offer = self.current_offer
         self.step_count += 1
         self.history.append(action)
         reward = 0.0
@@ -50,6 +51,12 @@ class ProcureNegEnv:
             ActionType.PACKAGE_TRADE,
             ActionType.ANCHOR,
         }:
+            if action.offer is not None and previous_offer is not None:
+                if self._is_better_offer(action.offer, previous_offer):
+                    reward += 0.05
+                else:
+                    reward -= 0.02
+
             self.current_offer = action.offer
 
             cp_action, cp_offer = self.counterparty.respond(
@@ -106,6 +113,18 @@ class ProcureNegEnv:
             deal_closed=True,
         )
         return result["final_score"]
+
+    def _is_better_offer(
+        self,
+        new_offer: ContractClauses,
+        previous_offer: ContractClauses,
+    ) -> bool:
+        lower_fee = new_offer.annual_fee < previous_offer.annual_fee
+        better_sla = (
+            new_offer.sla_uptime > previous_offer.sla_uptime
+            or new_offer.sla_penalty_rate > previous_offer.sla_penalty_rate
+        )
+        return lower_fee or better_sla
 
 
 def load_task(task_name: str) -> dict[str, Any]:

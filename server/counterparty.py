@@ -22,6 +22,7 @@ class Counterparty:
         }
         self.flexibility = flexibility
         self.current_offer = self._build_opening_offer()
+        self.last_offer: ContractClauses | None = None
 
     def is_acceptable(self, offer: ContractClauses) -> bool:
         """
@@ -116,7 +117,13 @@ class Counterparty:
         """
         Returns: (action_type, contract)
         """
-        del action_type
+        if action_type == ActionType.ANCHOR:
+            self.flexibility = max(0.01, self.flexibility * 0.8)
+
+        if self.last_offer is not None and self.last_offer == offer:
+            self.flexibility = max(0.01, self.flexibility * 0.9)
+
+        self.last_offer = deepcopy(offer)
 
         if self.is_acceptable(offer):
             return ActionType.ACCEPT, offer
