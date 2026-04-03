@@ -57,6 +57,33 @@ class ProcureNegEnv:
                 else:
                     reward -= 0.02
 
+            if action.action_type == ActionType.CONCEDE and self.counterparty is not None:
+                self.counterparty.flexibility = min(1.0, self.counterparty.flexibility * 1.15)
+
+            if action.action_type == ActionType.ANCHOR:
+                reward -= 0.01
+
+            if (
+                action.action_type == ActionType.PACKAGE_TRADE
+                and action.offer is not None
+                and previous_offer is not None
+            ):
+                improvements = 0
+
+                if action.offer.annual_fee < previous_offer.annual_fee:
+                    improvements += 1
+                if action.offer.sla_uptime > previous_offer.sla_uptime:
+                    improvements += 1
+                if action.offer.sla_penalty_rate > previous_offer.sla_penalty_rate:
+                    improvements += 1
+                if action.offer.payment_terms > previous_offer.payment_terms:
+                    improvements += 1
+
+                if improvements >= 2:
+                    reward += 0.04
+                else:
+                    reward -= 0.01
+
             self.current_offer = action.offer
 
             cp_action, cp_offer = self.counterparty.respond(
