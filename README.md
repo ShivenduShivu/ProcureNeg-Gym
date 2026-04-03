@@ -27,11 +27,14 @@ The environment simulates buyer-vs-seller procurement negotiation with:
 
 ## Action Space
 
-Agent actions are structured and validated. Core actions used in the live API flow are:
+Agent actions are structured and validated. Supported actions are:
 
 - `propose`
 - `counter`
 - `accept`
+- `anchor`
+- `concede`
+- `package_trade`
 - `walkaway`
 
 Each proposal carries a contract offer with these clauses:
@@ -65,6 +68,41 @@ Difficulty is loaded from YAML task files in `server/tasks/`:
 - `easy`: more flexible counterparty, `max_steps = 12`
 - `medium`: balanced negotiation, `max_steps = 10`
 - `hard`: tougher counterparty, `max_steps = 8`
+
+## Reward Design
+
+Final reward is deterministic and computed by the grader from:
+
+- clause quality
+- negotiation efficiency
+- deal completion
+
+The environment also adds light intermediate shaping during negotiation:
+
+- small positive reward for improved offers
+- small penalty for worse offers
+
+This keeps the system deterministic while making step-by-step behavior less sparse.
+
+## Counterparty Behavior
+
+The counterparty is rule-based and deterministic.
+
+It evaluates each incoming offer against hidden reservation values and generates structured counteroffers. It also adjusts its concession flexibility based on:
+
+- `anchor` actions
+- repeated offers
+
+There is no randomness in counterparty behavior.
+
+## Why This Matters
+
+This project is designed to be useful beyond a toy simulation:
+
+- deterministic evaluation makes runs comparable
+- procurement-style contract negotiation is enterprise-relevant
+- reproducibility supports benchmarking and debugging
+- structured scoring makes it easier to evaluate AI agent quality
 
 ## API
 
