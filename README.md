@@ -131,15 +131,29 @@ This means the system can still produce repeatable demonstrations even when no m
 
 ## Baseline Results
 
-Baseline results below were produced by running `inference.py` locally against the API using the deterministic fallback policy.
+### Deterministic Fallback (no LLM required)
+Rule-based policy. Reproducible with `temperature=0.0`, `seed=42`.
 
-| Task | Steps | Score | Deal |
-|---|---:|---:|---|
-| easy | 10 | 0.5007 | Yes |
-| medium | 8 | 0.4722 | Yes |
-| hard | 8 | 0.0500 | No |
+| Task   | Steps | Score  | Deal |
+|--------|------:|-------:|------|
+| easy   |    10 | 0.5007 | Yes  |
+| medium |     8 | 0.4756 | Yes  |
+| hard   |     8 | 0.0500 | No   |
 
-Latest ordering from this run: `easy > medium > hard` with spread `0.4507`.
+### LLM Agent Baseline (`gpt-4o-mini`)
+Strategic LLM agent. Shows environment headroom above fallback.
+
+| Task   | Steps | Score  | Deal |
+|--------|------:|-------:|------|
+| easy   |     3 | 0.6090 | Yes  |
+| medium |     2 | 0.6089 | Yes  |
+| hard   |     3 | 0.5154 | Yes  |
+
+Key observations:
+- LLM scores 20%+ higher than fallback on easy/medium.
+- LLM closes hard task; fallback cannot, showing strategic reasoning matters.
+- Hard remains the lowest LLM score, confirming difficulty progression.
+- Environment rewards genuine negotiation strategy.
 
 ### Deterministic Inference
 

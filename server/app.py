@@ -73,12 +73,13 @@ def health() -> dict[str, str]:
 
 
 @app.get("/metadata")
-def metadata() -> dict[str, str | bool]:
+def metadata() -> dict[str, object]:
     return {
         "name": "procureneg-gym",
-        "version": "1.0",
-        "description": "Deterministic procurement negotiation RL environment",
-        "author": "your-team-name",
+        "version": "1.0.0",
+        "description": "Enterprise procurement contract negotiation RL environment",
+        "author": "Shivendu Shivu",
+        "tags": ["procurement", "negotiation", "enterprise", "openenv"],
         "task_type": "negotiation",
         "deterministic": True,
     }
