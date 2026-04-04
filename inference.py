@@ -6,20 +6,24 @@ import requests
 from openai import OpenAI
 
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:7860")
-MODEL_API_BASE = os.getenv("API_BASE_URL_LLM", "https://router.huggingface.co/v1")
-API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+# Mandatory env vars
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-MAX_STEPS = int(os.getenv("INFERENCE_MAX_STEPS", "10"))
-TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "500"))
-REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30"))
-INFERENCE_SEED = int(os.getenv("INFERENCE_SEED", "42"))
+# API_KEY chain for flexibility
+API_KEY = os.getenv("OPENAI_API_KEY") or HF_TOKEN or os.getenv("API_KEY")
+
+# Internal constants (not env vars)
+TEMPERATURE = 0.0
+MAX_TOKENS = 500
+INFERENCE_SEED = 42
+REQUEST_TIMEOUT = 30
+INFERENCE_MAX_STEPS = 10
 
 llm_client = OpenAI(
     api_key=API_KEY,
-    base_url=MODEL_API_BASE,
+    base_url=API_BASE_URL,
 ) if API_KEY else None
 
 
@@ -353,7 +357,7 @@ def run_episode(task: str) -> dict[str, Any]:
     step = 0
 
     try:
-        while not done and step < MAX_STEPS:
+        while not done and step < INFERENCE_MAX_STEPS:
             prompt = build_prompt(observation)
             try:
                 model_output = call_model(prompt)
