@@ -86,40 +86,100 @@ def extract_json_object(response_text: str) -> dict[str, Any]:
     return json.loads(response_text[start : end + 1])
 
 
+def is_close(
+    current_offer: dict[str, Any] | None,
+    counterparty_offer: dict[str, Any] | None,
+) -> bool:
+    if current_offer is None or counterparty_offer is None:
+        return False
+
+    fee_diff = abs(
+        current_offer["annual_fee"] -
+        counterparty_offer["annual_fee"]
+    )
+
+    fee_relative = fee_diff / counterparty_offer["annual_fee"]
+
+    return fee_relative < 0.15
+
+
+def is_stuck(history: list[dict[str, Any]]) -> bool:
+    if len(history) < 2:
+        return False
+
+    last = history[-1].get("offer", {})
+    prev = history[-2].get("offer", {})
+
+    return last.get("annual_fee") == prev.get("annual_fee")
+
+
+def build_offer(
+    counterparty_offer: dict[str, Any] | None,
+    aggressiveness: float,
+) -> dict[str, Any] | None:
+    if not counterparty_offer:
+        return None
+
+    factor = 1.0 - (0.3 * aggressiveness)
+
+    return {
+        "annual_fee": round(counterparty_offer["annual_fee"] * factor),
+        "payment_terms": counterparty_offer["payment_terms"],
+        "duration_years": counterparty_offer["duration_years"],
+        "sla_uptime": counterparty_offer["sla_uptime"],
+        "sla_penalty_rate": counterparty_offer["sla_penalty_rate"],
+        "liability_cap": counterparty_offer["liability_cap"],
+        "ip_ownership": counterparty_offer["ip_ownership"],
+        "termination_days": counterparty_offer["termination_days"],
+    }
+
+
+def bootstrap_offer() -> dict[str, Any]:
+    return {
+        "annual_fee": 500000,
+        "payment_terms": 45,
+        "duration_years": 3,
+        "sla_uptime": 99.5,
+        "sla_penalty_rate": 0.08,
+        "liability_cap": 1.2,
+        "ip_ownership": "joint",
+        "termination_days": 60,
+    }
+
+
 def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
+    progress = step / observation["max_steps"]
+    aggressiveness = 1.0 - progress
+    current_offer = observation.get("current_offer")
     counterparty_offer = observation.get("counterparty_offer")
-    max_steps = observation.get("max_steps", MAX_STEPS)
+    history = observation.get("negotiation_history", [])
 
-    if counterparty_offer and step >= max_steps - 2:
-        return {"action": "accept"}
-
-    ip_ownership = "client"
-    if step >= 4:
-        ip_ownership = "vendor"
-    elif step >= 2:
-        ip_ownership = "joint"
-
-    if step == 0:
+    if progress < 0.3:
         action_type = "anchor"
-    elif step == 2:
-        action_type = "package_trade"
-    elif step >= 4:
-        action_type = "concede"
+        offer = build_offer(counterparty_offer, aggressiveness)
+    elif progress < 0.7:
+        if is_stuck(history):
+            action_type = "concede"
+        else:
+            action_type = "package_trade"
+        offer = build_offer(counterparty_offer, aggressiveness)
     else:
-        action_type = "propose"
+        if is_close(current_offer, counterparty_offer):
+            action_type = "accept"
+            offer = None
+        else:
+            action_type = "concede"
+            offer = build_offer(counterparty_offer, aggressiveness)
+
+    if offer is None and action_type != "accept":
+        offer = current_offer or bootstrap_offer()
+
+    if action_type == "accept":
+        return {"action": action_type}
 
     return {
         "action": action_type,
-        "offer": {
-            "annual_fee": min(2000000, 400000 + step * 120000),
-            "payment_terms": max(15, 60 - step * 6),
-            "duration_years": min(5, 1 + (step // 2)),
-            "sla_uptime": max(99.0, round(99.95 - step * 0.165, 3)),
-            "sla_penalty_rate": max(0.01, round(0.12 - step * 0.015, 3)),
-            "liability_cap": max(0.25, round(1.8 - step * 0.15, 2)),
-            "ip_ownership": ip_ownership,
-            "termination_days": min(180, 30 + step * 10),
-        },
+        "offer": offer,
     }
 
 
