@@ -96,7 +96,7 @@ The environment is designed to be fully deterministic:
 - task configuration comes from static YAML files
 - the counterparty uses fixed rules, not randomness
 - the grader is a pure scoring function
-- the fallback inference policy follows a fixed action sequence
+- the fallback inference policy follows deterministic observation-based rules
 
 Given the same task and the same action sequence, the environment produces the same trajectory and score.
 
@@ -135,9 +135,9 @@ Baseline results below were produced by running `inference.py` locally against t
 
 | Task | Steps | Score | Deal |
 |---|---:|---:|---|
-| easy | 5 | 0.5527 | Yes |
-| medium | 7 | 0.4324 | Yes |
-| hard | 7 | 0.4338 | Yes |
+| easy | 10 | 0.4973 | Yes |
+| medium | 8 | 0.4685 | Yes |
+| hard | 6 | 0.4546 | Yes |
 
 ### Deterministic Inference
 
