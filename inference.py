@@ -23,16 +23,85 @@ llm_client = OpenAI(
 ) if API_KEY else None
 
 
+def log_start(task: str, model: str) -> None:
+    print(f"[START] task={task} env=procureneg model={model}", flush=True)
+
+
+def log_step(
+    step: int,
+    action: str,
+    reward: float,
+    done: bool,
+    error: str | None = None,
+) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} "
+        f"reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
+    rewards_str = ",".join(f"{reward:.2f}" for reward in rewards)
+    print(
+        f"[END] success={str(success).lower()} "
+        f"steps={steps} score={score:.3f} rewards={rewards_str}",
+        flush=True,
+    )
+
+
 def build_prompt(observation: dict[str, Any]) -> str:
+    step_count = int(observation.get("step_count", 0))
+    max_steps = int(observation.get("max_steps", 0))
+    steps_remaining = max(max_steps - step_count, 0)
+    current_offer = observation.get("current_offer")
+    counterparty_offer = observation.get("counterparty_offer")
+    counterparty_has_offer = counterparty_offer is not None
+
+    current_fee = (
+        current_offer.get("annual_fee")
+        if isinstance(current_offer, dict)
+        else None
+    )
+    counterparty_fee = (
+        counterparty_offer.get("annual_fee")
+        if isinstance(counterparty_offer, dict)
+        else None
+    )
+    fee_difference = (
+        abs(current_fee - counterparty_fee)
+        if isinstance(current_fee, (int, float)) and isinstance(counterparty_fee, (int, float))
+        else None
+    )
+
     return (
         "You are negotiating a procurement contract.\n"
         "Choose the next best structured action for the buyer.\n"
-        "You must use strategic actions:\n"
-        '- Use "anchor" at the beginning to set a strong position\n'
-        '- Use "concede" when negotiation stalls\n'
-        '- Use "package_trade" when improving multiple terms together\n'
-        "Do not always use the same action.\n"
-        "Balance between aggressive and cooperative strategies.\n"
+        "ACCEPTANCE RULE:\n"
+        "If counterparty_offer exists AND step >= max_steps * 0.6 AND\n"
+        "counterparty annual_fee is within 25% of your current_offer annual_fee,\n"
+        "you SHOULD call accept to close the deal.\n"
+        "If you are in the final 2 steps and any counterparty offer exists,\n"
+        "you MUST call accept.\n\n"
+        "WHEN TO USE EACH ACTION:\n"
+        '- anchor: ONLY on step 0 as opening move\n'
+        '- propose/counter: when you want to move toward agreement\n'
+        '- concede: when you want to signal flexibility\n'
+        '- package_trade: when offers are close on most clauses\n'
+        '- accept: when counterparty offer is acceptable OR you are running out of steps\n'
+        '- walkaway: NEVER use this unless deal is clearly impossible\n\n'
+        f"CURRENT STEP: {step_count}\n"
+        f"MAX STEPS: {max_steps}\n"
+        f"STEPS REMAINING: {steps_remaining}\n"
+        f"COUNTERPARTY OFFER EXISTS: {counterparty_has_offer}\n\n"
+        "YOUR CURRENT OFFER:\n"
+        f"  annual_fee: {current_fee}\n\n"
+        "COUNTERPARTY OFFER:\n"
+        f"  annual_fee: {counterparty_fee}\n\n"
+        f"DIFFERENCE: {fee_difference}\n"
+        f"STEPS REMAINING: {steps_remaining}\n\n"
         "Return ONLY valid JSON.\n\n"
         f"Observation:\n{json.dumps(observation, indent=2, sort_keys=True)}\n\n"
         "Allowed actions: propose, counter, accept, anchor, concede, package_trade, walkaway.\n"
@@ -164,14 +233,14 @@ def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
     history = observation.get("negotiation_history", [])
 
     if progress < 0.3:
-        action_type = "anchor"
+        action_type = "anchor" if step == 0 else "propose"
         offer = build_offer(
             counterparty_offer,
             aggressiveness,
             max_steps=observation["max_steps"],
         )
     elif progress < 0.7:
-        if is_close(current_offer, counterparty_offer, max_steps) and progress > 0.6:
+        if is_close(current_offer, counterparty_offer, max_steps):
             action_type = "accept"
             offer = None
         elif is_stuck(history):
@@ -182,7 +251,7 @@ def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
                 max_steps=observation["max_steps"],
             )
         else:
-            action_type = "package_trade"
+            action_type = "propose"
             offer = build_offer(
                 counterparty_offer,
                 aggressiveness,
@@ -271,42 +340,81 @@ def execute_action(
 
 
 def run_episode(task: str) -> dict[str, Any]:
+    log_start(task=task, model=MODEL_NAME)
+
+    rewards_list: list[float] = []
+    steps_taken = 0
+    last_observation: dict[str, Any] | None = None
+    final_reward = 0.0
+    episode_error: str | None = None
+
     observation = reset_env(task)
     done = False
     step = 0
-    final_reward = 0.0
 
-    while not done and step < MAX_STEPS:
-        prompt = build_prompt(observation)
-        try:
-            model_output = call_model(prompt)
-            parsed_action = extract_json_object(model_output)
-            action = normalize_action(parsed_action, step, observation)
-        except Exception:
-            action = fallback_policy(step, observation)
+    try:
+        while not done and step < MAX_STEPS:
+            prompt = build_prompt(observation)
+            try:
+                model_output = call_model(prompt)
+                parsed_action = extract_json_object(model_output)
+                action = normalize_action(parsed_action, step, observation)
+            except Exception:
+                action = fallback_policy(step, observation)
 
-        action, result = execute_action(action, step, observation)
-        observation = result["observation"]
-        done = result["done"]
-        final_reward = result["reward"]
-
-        print(
-            f"[{task}] step={step} action={action['action']} "
-            f"reward={final_reward:.4f}"
+            try:
+                action, result = execute_action(action, step, observation)
+                observation = result["observation"]
+                last_observation = observation
+                done = result["done"]
+                final_reward = result["reward"]
+                rewards_list.append(final_reward)
+                steps_taken = step + 1
+                log_step(
+                    step=steps_taken,
+                    action=action["action"],
+                    reward=final_reward,
+                    done=done,
+                    error=None,
+                )
+                step += 1
+            except Exception as exc:
+                episode_error = str(exc)
+                done = True
+                steps_taken = step + 1
+                log_step(
+                    step=steps_taken,
+                    action=action.get("action", "unknown"),
+                    reward=final_reward,
+                    done=True,
+                    error=episode_error,
+                )
+                break
+    finally:
+        final_score = rewards_list[-1] if rewards_list else 0.0
+        success = final_score > 0.1
+        log_end(
+            success=success,
+            steps=steps_taken,
+            score=final_score,
+            rewards=rewards_list,
         )
-        step += 1
 
-    final_contract = observation.get("counterparty_offer") or observation.get("current_offer")
+    final_contract = None
+    if last_observation is not None:
+        final_contract = (
+            last_observation.get("counterparty_offer")
+            or last_observation.get("current_offer")
+        )
     return {
         "task": task,
-        "steps": step,
+        "steps": steps_taken,
         "reward": final_reward,
         "final_contract": final_contract,
+        "error": episode_error,
     }
 
 
 if __name__ == "__main__":
-    results = [run_episode(task) for task in ["easy", "medium", "hard"]]
-    print("\nFINAL RESULTS:")
-    for result in results:
-        print(result)
+    for task in ["easy", "medium", "hard"]:
+        run_episode(task)
