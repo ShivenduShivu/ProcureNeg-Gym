@@ -122,19 +122,6 @@ def schema() -> dict:
         },
     }
 
-
-@app.post("/mcp")
-def mcp() -> dict:
-    return {
-        "jsonrpc": "2.0",
-        "id": None,
-        "result": {
-            "status": "not_implemented",
-            "note": "MCP interface placeholder",
-        },
-    }
-
-
 def main() -> None:
     uvicorn.run(
         "server.app:app",

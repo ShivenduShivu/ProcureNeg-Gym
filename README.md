@@ -129,6 +129,25 @@ The included `inference.py` runner is API-driven and includes a deterministic fa
 
 This means the system can still produce repeatable demonstrations even when no model API key is configured.
 
+## Baseline Results
+
+Baseline results below were produced by running `inference.py` locally against the API using the deterministic fallback policy.
+
+| Task | Steps | Score | Deal |
+|---|---:|---:|---|
+| easy | 5 | 0.5527 | Yes |
+| medium | 7 | 0.4324 | Yes |
+| hard | 7 | 0.4338 | Yes |
+
+### Deterministic Inference
+
+We enforce reproducibility in the model call path with:
+
+- `temperature = 0.0`
+- `seed = 42`
+
+Fallback policy ensures a fully deterministic baseline even without LLM access.
+
 ## What Makes This Challenging
 
 The negotiation problem is intentionally structured to create non-trivial decision pressure:
@@ -166,7 +185,6 @@ The deployed service exposes these primary endpoints:
 - `GET /health`
 - `GET /metadata`
 - `GET /schema`
-- `POST /mcp`
 
 Example reset request:
 

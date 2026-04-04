@@ -27,7 +27,3 @@ endpoints:
   schema:
     method: GET
     path: /schema
-
-  mcp:
-    method: POST
-    path: /mcp

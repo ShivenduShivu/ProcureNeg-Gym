@@ -12,9 +12,10 @@ API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 MAX_STEPS = int(os.getenv("INFERENCE_MAX_STEPS", "10"))
-TEMPERATURE = float(os.getenv("TEMPERATURE", "0"))
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "200"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "500"))
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30"))
+INFERENCE_SEED = int(os.getenv("INFERENCE_SEED", "42"))
 
 llm_client = OpenAI(
     api_key=API_KEY,
@@ -65,7 +66,9 @@ def call_model(prompt: str) -> str:
             {"role": "user", "content": prompt},
         ],
         temperature=TEMPERATURE,
+        seed=INFERENCE_SEED,
         max_tokens=MAX_TOKENS,
+        stream=False,
     )
     return response.choices[0].message.content or ""
 

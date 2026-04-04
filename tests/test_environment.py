@@ -76,3 +76,26 @@ def test_reset_clears_state() -> None:
     assert obs.negotiation_history == []
     assert obs.current_offer is None
     assert obs.counterparty_offer is None
+
+
+def test_concede_improves_counterparty_offer() -> None:
+    baseline_env = ProcureNegEnv()
+    concede_env = ProcureNegEnv()
+    baseline_env.reset("medium")
+    concede_env.reset("medium")
+
+    offer = make_offer(annual_fee=760000, payment_terms=40, duration_years=3, sla_uptime=99.5)
+
+    baseline_result = baseline_env.step(
+        Action(action_type=ActionType.PROPOSE, offer=offer)
+    )
+    concede_result = concede_env.step(
+        Action(action_type=ActionType.CONCEDE, offer=offer)
+    )
+
+    baseline_counter = baseline_result.observation.counterparty_offer
+    concede_counter = concede_result.observation.counterparty_offer
+
+    assert baseline_counter is not None
+    assert concede_counter is not None
+    assert concede_counter.annual_fee <= baseline_counter.annual_fee
