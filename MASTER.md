@@ -146,3 +146,12 @@ INFERENCE FALLBACK IMPROVEMENT - COMPLETE
 [x] No task_name hardcoding introduced
 [x] Deterministic ordering improved: easy > medium > hard
 [x] Local inference run verified against the live API contract
+
+LATEST INFERENCE VALIDATION (CURRENT)
+
+[x] easy: steps=10, score=0.5007, deal=Yes
+[x] medium: steps=8, score=0.4722, deal=Yes
+[x] hard: steps=8, score=0.0500, deal=No
+[x] spread (easy-hard): 0.4507
+[x] ordering: easy > medium > hard
+[x] pytest: 9 passed

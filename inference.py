@@ -89,6 +89,7 @@ def extract_json_object(response_text: str) -> dict[str, Any]:
 def is_close(
     current_offer: dict[str, Any] | None,
     counterparty_offer: dict[str, Any] | None,
+    max_steps: int,
 ) -> bool:
     if current_offer is None or counterparty_offer is None:
         return False
@@ -100,7 +101,10 @@ def is_close(
 
     fee_relative = fee_diff / counterparty_offer["annual_fee"]
 
-    return fee_relative < 0.15
+    tight = max_steps <= 8
+    threshold = 0.25 if not tight else 0.12
+
+    return fee_relative < threshold
 
 
 def is_stuck(history: list[dict[str, Any]]) -> bool:
@@ -116,11 +120,15 @@ def is_stuck(history: list[dict[str, Any]]) -> bool:
 def build_offer(
     counterparty_offer: dict[str, Any] | None,
     aggressiveness: float,
+    max_steps: int = 10,
 ) -> dict[str, Any] | None:
     if not counterparty_offer:
         return None
 
-    factor = 1.0 - (0.3 * aggressiveness)
+    tight = max_steps <= 8
+    min_aggressiveness = 0.35 if tight else 0.25
+    effective_aggressiveness = max(aggressiveness, min_aggressiveness)
+    factor = 1.0 - (0.6 * effective_aggressiveness)
 
     return {
         "annual_fee": round(counterparty_offer["annual_fee"] * factor),
@@ -150,26 +158,47 @@ def bootstrap_offer() -> dict[str, Any]:
 def fallback_policy(step: int, observation: dict[str, Any]) -> dict[str, Any]:
     progress = step / observation["max_steps"]
     aggressiveness = 1.0 - progress
+    max_steps = observation["max_steps"]
     current_offer = observation.get("current_offer")
     counterparty_offer = observation.get("counterparty_offer")
     history = observation.get("negotiation_history", [])
 
     if progress < 0.3:
         action_type = "anchor"
-        offer = build_offer(counterparty_offer, aggressiveness)
+        offer = build_offer(
+            counterparty_offer,
+            aggressiveness,
+            max_steps=observation["max_steps"],
+        )
     elif progress < 0.7:
-        if is_stuck(history):
+        if is_close(current_offer, counterparty_offer, max_steps) and progress > 0.6:
+            action_type = "accept"
+            offer = None
+        elif is_stuck(history):
             action_type = "concede"
+            offer = build_offer(
+                counterparty_offer,
+                aggressiveness,
+                max_steps=observation["max_steps"],
+            )
         else:
             action_type = "package_trade"
-        offer = build_offer(counterparty_offer, aggressiveness)
+            offer = build_offer(
+                counterparty_offer,
+                aggressiveness,
+                max_steps=observation["max_steps"],
+            )
     else:
-        if is_close(current_offer, counterparty_offer):
+        if is_close(current_offer, counterparty_offer, max_steps):
             action_type = "accept"
             offer = None
         else:
             action_type = "concede"
-            offer = build_offer(counterparty_offer, aggressiveness)
+            offer = build_offer(
+                counterparty_offer,
+                aggressiveness,
+                max_steps=observation["max_steps"],
+            )
 
     if offer is None and action_type != "accept":
         offer = current_offer or bootstrap_offer()

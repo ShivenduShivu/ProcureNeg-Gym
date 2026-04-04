@@ -135,9 +135,11 @@ Baseline results below were produced by running `inference.py` locally against t
 
 | Task | Steps | Score | Deal |
 |---|---:|---:|---|
-| easy | 10 | 0.4973 | Yes |
-| medium | 8 | 0.4685 | Yes |
-| hard | 6 | 0.4546 | Yes |
+| easy | 10 | 0.5007 | Yes |
+| medium | 8 | 0.4722 | Yes |
+| hard | 8 | 0.0500 | No |
+
+Latest ordering from this run: `easy > medium > hard` with spread `0.4507`.
 
 ### Deterministic Inference
 
