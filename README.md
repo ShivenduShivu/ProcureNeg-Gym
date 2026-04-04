@@ -89,6 +89,32 @@ The declared reward range for the API is `[-0.1, 1.0]`:
 - terminal rewards come from the deterministic grader
 - intermediate shaping can be slightly negative for strategically weak actions
 
+### Grader Formula
+final_score = (0.6 × clause_score)
++ (0.2 × efficiency_score)
++ (0.2 × completion_bonus)
+clause_score     = weighted sum of 8 normalized clauses
+efficiency_score = 1 - (steps_used / max_steps)
+completion_bonus = 1.0 if deal closed, else 0.0
+
+Clause weights:
+
+| Clause            | Weight |
+|-------------------|-------:|
+| annual_fee        |   0.28 |
+| payment_terms     |   0.14 |
+| sla_uptime        |   0.14 |
+| sla_penalty_rate  |   0.14 |
+| liability_cap     |   0.10 |
+| duration_years    |   0.10 |
+| termination_days  |   0.06 |
+| ip_ownership      |   0.04 |
+
+Weights reflect business importance.
+annual_fee carries the highest weight as the primary
+financial outcome. ip_ownership carries the lowest
+as it is typically non-negotiable in most scenarios.
+
 ## Determinism
 
 The environment is designed to be fully deterministic:
@@ -191,6 +217,20 @@ This project is designed to be useful beyond a toy simulation:
 - reproducibility supports benchmarking and debugging
 - structured scoring makes it easier to evaluate AI agent quality
 
+## Known Limitations
+
+- Single-session design: one active episode per server
+  instance. Not suitable for concurrent multi-user
+  evaluation without modification.
+- Counterparty preferences are fully active for
+  annual_fee, payment_terms, and sla_uptime. Other
+  clauses use generic concession rules.
+- LLM inference reproducibility depends on provider
+  determinism at temperature=0.0 and seed=42.
+- Models procurement negotiation at benchmark level.
+  Does not capture full legal/commercial nuance of
+  real enterprise contracts.
+
 ## API
 
 The deployed service exposes these primary endpoints:
@@ -240,7 +280,7 @@ This repository is configured for a Docker Space. The Space should listen on por
 After pushing to the Hugging Face Space remote, verify the deployment with:
 
 ```bash
-curl -X POST https://YOUR-SPACE.hf.space/reset \
+curl -X POST https://starwarrior24x7-procureneg-gym.hf.space/reset \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
