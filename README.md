@@ -90,12 +90,14 @@ The declared reward range for the API is `[-0.1, 1.0]`:
 - intermediate shaping can be slightly negative for strategically weak actions
 
 ### Grader Formula
+```text
 final_score = (0.6 × clause_score)
 + (0.2 × efficiency_score)
 + (0.2 × completion_bonus)
 clause_score     = weighted sum of 8 normalized clauses
 efficiency_score = 1 - (steps_used / max_steps)
 completion_bonus = 1.0 if deal closed, else 0.0
+```
 
 Clause weights:
 
@@ -264,7 +266,14 @@ Then open `/docs` to explore and test the API.
 
 ## Running Inference
 
-### Fallback only (no LLM, fully deterministic)
+### Fallback baseline (no LLM, fully deterministic)
+
+Start the server first:
+```bash
+uvicorn server.app:app --host 0.0.0.0 --port 7860
+```
+
+Then in a separate terminal:
 ```bash
 export API_BASE_URL="http://127.0.0.1:7860"
 python inference.py
@@ -273,28 +282,34 @@ python inference.py
 No API key required. Uses deterministic fallback policy.
 Produces reproducible baseline scores.
 
-### Local environment with LLM
+### LLM baseline (local environment)
 ```bash
 export API_BASE_URL="http://127.0.0.1:7860"
 export LLM_BASE_URL="https://router.huggingface.co/v1"
-export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export MODEL_NAME="gpt-4o-mini"
 export HF_TOKEN="your-hf-token"
 python inference.py
 ```
 
-### Against live HF Space with LLM
+### LLM baseline (live HF Space)
 ```bash
 export API_BASE_URL="https://starwarrior24x7-procureneg-gym.hf.space"
 export LLM_BASE_URL="https://router.huggingface.co/v1"
-export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export MODEL_NAME="gpt-4o-mini"
 export HF_TOKEN="your-hf-token"
 python inference.py
 ```
 
-Note: API_BASE_URL controls where the environment is running
-(local or HF Space). LLM baseline results in this README
-were produced with MODEL_NAME=gpt-4o-mini against the
-local API at http://127.0.0.1:7860.
+Fixed evaluation parameters:
+- temperature=0.0, seed=42
+- tasks: easy, medium, hard (in order)
+- max_steps defined per task YAML
+- scores reported in [END] line of stdout
+
+Note: API_BASE_URL is the environment endpoint.
+LLM_BASE_URL is the model provider endpoint.
+If LLM_BASE_URL is not set, it falls back to API_BASE_URL.
+LLM baseline results were produced with MODEL_NAME=gpt-4o-mini.
 
 ## Deployment
 
