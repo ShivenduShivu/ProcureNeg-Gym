@@ -7,7 +7,7 @@ from openai import OpenAI
 
 
 # Mandatory env vars
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:7860")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
 # LLM provider endpoint (separate from environment URL)
