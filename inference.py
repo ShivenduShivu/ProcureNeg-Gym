@@ -10,6 +10,8 @@ from openai import OpenAI
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
+# LLM provider endpoint (separate from environment URL)
+LLM_BASE_URL = os.getenv("LLM_BASE_URL") or os.getenv("API_BASE_URL")
 
 # API_KEY chain for flexibility
 API_KEY = os.getenv("OPENAI_API_KEY") or HF_TOKEN or os.getenv("API_KEY")
@@ -23,7 +25,7 @@ INFERENCE_MAX_STEPS = 10
 
 llm_client = OpenAI(
     api_key=API_KEY,
-    base_url=API_BASE_URL,
+    base_url=LLM_BASE_URL,
 ) if API_KEY else None
 
 

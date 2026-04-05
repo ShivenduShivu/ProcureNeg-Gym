@@ -276,15 +276,17 @@ Produces reproducible baseline scores.
 ### Local environment with LLM
 ```bash
 export API_BASE_URL="http://127.0.0.1:7860"
-export MODEL_NAME="gpt-4o-mini"
-export OPENAI_API_KEY="your-key"
+export LLM_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export HF_TOKEN="your-hf-token"
 python inference.py
 ```
 
 ### Against live HF Space with LLM
 ```bash
 export API_BASE_URL="https://starwarrior24x7-procureneg-gym.hf.space"
-export MODEL_NAME="gpt-4o-mini"
+export LLM_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
 export HF_TOKEN="your-hf-token"
 python inference.py
 ```
