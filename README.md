@@ -262,6 +262,38 @@ uvicorn server.app:app --host 0.0.0.0 --port 7860
 
 Then open `/docs` to explore and test the API.
 
+## Running Inference
+
+### Fallback only (no LLM, fully deterministic)
+```bash
+export API_BASE_URL="http://127.0.0.1:7860"
+python inference.py
+```
+
+No API key required. Uses deterministic fallback policy.
+Produces reproducible baseline scores.
+
+### Local environment with LLM
+```bash
+export API_BASE_URL="http://127.0.0.1:7860"
+export MODEL_NAME="gpt-4o-mini"
+export OPENAI_API_KEY="your-key"
+python inference.py
+```
+
+### Against live HF Space with LLM
+```bash
+export API_BASE_URL="https://starwarrior24x7-procureneg-gym.hf.space"
+export MODEL_NAME="gpt-4o-mini"
+export HF_TOKEN="your-hf-token"
+python inference.py
+```
+
+Note: API_BASE_URL controls where the environment is running
+(local or HF Space). LLM baseline results in this README
+were produced with MODEL_NAME=gpt-4o-mini against the
+local API at http://127.0.0.1:7860.
+
 ## Deployment
 
 The repository is configured for Docker and Hugging Face Spaces.
