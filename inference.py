@@ -20,6 +20,7 @@ MAX_TOKENS = 500
 INFERENCE_SEED = 42
 REQUEST_TIMEOUT = 30
 INFERENCE_MAX_STEPS = 10
+END_SCORE_DECIMALS = 3
 
 llm_client = OpenAI(
     api_key=API_KEY,
@@ -51,7 +52,7 @@ def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> No
     rewards_str = ",".join(f"{reward:.2f}" for reward in rewards)
     print(
         f"[END] success={str(success).lower()} "
-        f"steps={steps} score={score:.3f} rewards={rewards_str}",
+        f"steps={steps} score={score:.{END_SCORE_DECIMALS}f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -396,7 +397,9 @@ def run_episode(task: str) -> dict[str, Any]:
                 break
     finally:
         raw_score = rewards_list[-1] if rewards_list else 0.0
-        final_score = max(0.0, min(1.0, raw_score))
+        clamped_score = max(0.0, min(1.0, raw_score))
+        margin = 10 ** (-END_SCORE_DECIMALS)
+        final_score = min(1.0 - margin, max(margin, clamped_score))
         success = final_score > 0.1
         log_end(
             success=success,
