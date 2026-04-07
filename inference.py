@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import Any
 
 import requests
@@ -10,6 +11,14 @@ from openai import OpenAI
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:7860")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
+# Environment endpoint for /reset and /step.
+# Defaults to deployed HF Space so submission runners don't depend on localhost.
+ENV_BASE_URL = os.getenv("ENV_BASE_URL")
+if not ENV_BASE_URL:
+    if API_BASE_URL.startswith("http://127.0.0.1") or API_BASE_URL.startswith("http://localhost"):
+        ENV_BASE_URL = "https://starwarrior24x7-procureneg-gym.hf.space"
+    else:
+        ENV_BASE_URL = API_BASE_URL
 
 # API_KEY chain for flexibility
 API_KEY = os.getenv("OPENAI_API_KEY") or HF_TOKEN or os.getenv("API_KEY")
@@ -21,6 +30,8 @@ INFERENCE_SEED = 42
 REQUEST_TIMEOUT = 30
 INFERENCE_MAX_STEPS = 10
 END_SCORE_DECIMALS = 3
+HTTP_RETRIES = 3
+HTTP_BACKOFF_SECONDS = 0.75
 
 llm_client = OpenAI(
     api_key=API_KEY,
@@ -311,13 +322,23 @@ def normalize_action(action: dict[str, Any], step: int, observation: dict[str, A
 
 
 def post_json(path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    response = requests.post(
-        f"{API_BASE_URL}{path}",
-        json=payload,
-        timeout=REQUEST_TIMEOUT,
-    )
-    response.raise_for_status()
-    return response.json()
+    last_error: Exception | None = None
+    for attempt in range(1, HTTP_RETRIES + 1):
+        try:
+            response = requests.post(
+                f"{ENV_BASE_URL}{path}",
+                json=payload,
+                timeout=REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as exc:
+            last_error = exc
+            if attempt < HTTP_RETRIES:
+                time.sleep(HTTP_BACKOFF_SECONDS * attempt)
+
+    assert last_error is not None
+    raise last_error
 
 
 def reset_env(task: str) -> dict[str, Any]:
@@ -353,12 +374,20 @@ def run_episode(task: str) -> dict[str, Any]:
     final_reward = 0.0
     episode_error: str | None = None
 
-    observation = reset_env(task)
+    observation: dict[str, Any] | None = None
     done = False
     step = 0
 
     try:
+        try:
+            observation = reset_env(task)
+        except Exception as exc:
+            episode_error = f"reset_failed: {exc}"
+            done = True
+            steps_taken = 0
+
         while not done and step < INFERENCE_MAX_STEPS:
+            assert observation is not None
             prompt = build_prompt(observation)
             try:
                 model_output = call_model(prompt)
