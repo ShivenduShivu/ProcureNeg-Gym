@@ -15,13 +15,10 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 # Defaults to deployed HF Space so submission runners don't depend on localhost.
 ENV_BASE_URL = os.getenv("ENV_BASE_URL")
 if not ENV_BASE_URL:
-    if API_BASE_URL.startswith("http://127.0.0.1") or API_BASE_URL.startswith("http://localhost"):
-        ENV_BASE_URL = "https://starwarrior24x7-procureneg-gym.hf.space"
-    else:
-        ENV_BASE_URL = API_BASE_URL
+    ENV_BASE_URL = "https://starwarrior24x7-procureneg-gym.hf.space"
 
 # API_KEY chain for flexibility
-API_KEY = os.getenv("OPENAI_API_KEY") or HF_TOKEN or os.getenv("API_KEY")
+API_KEY = os.getenv("API_KEY") or HF_TOKEN or os.getenv("OPENAI_API_KEY")
 
 # Internal constants (not env vars)
 TEMPERATURE = 0.0
