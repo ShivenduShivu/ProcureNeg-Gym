@@ -27,11 +27,12 @@ def root() -> RedirectResponse:
 
 
 @app.post("/reset", response_model=Observation)
-def reset(request: ResetRequest) -> Observation:
+def reset(request: ResetRequest | None = None) -> Observation:
     global env
+    reset_request = request or ResetRequest()
     with env_lock:
         env = ProcureNegEnv()
-        return env.reset(request.task_name)
+        return env.reset(reset_request.task_name)
 
 
 @app.post("/step", response_model=StepResult)
